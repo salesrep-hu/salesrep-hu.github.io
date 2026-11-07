@@ -61,12 +61,16 @@
       document.getElementById('m').style.display = 'block';
       if (d.hiba) { document.getElementById('szoveg').innerHTML = '<span class="hiba"></span>'; document.querySelector('#szoveg .hiba').textContent = d.hiba; return; }
       document.getElementById('uzlet').textContent = d.uzlet || '';
+      // v4 (2026-11-07): a küldés gombjai jelzik a kiküldést (az Üzenőfal ebből zárja le a feladatot)
+      function naplo(c) { try { fetch(APP + '?m=k&t=' + encodeURIComponent(t) + '&c=' + encodeURIComponent(c), { mode: 'no-cors', keepalive: true }); } catch (e) {} }
+      ['viber', 'wa', 'sms'].forEach(function (id) { document.getElementById(id).addEventListener('click', function () { naplo(id === 'wa' ? 'WhatsApp' : id === 'sms' ? 'SMS' : 'Viber'); }); });
       document.getElementById('szoveg').textContent = d.szoveg;
       var enc = encodeURIComponent(d.szoveg);
       document.getElementById('viber').href = 'viber://forward?text=' + encodeURIComponent(d.viber);   // a Viber legfeljebb 200 karaktert ad át
       document.getElementById('wa').href = 'https://wa.me/?text=' + enc;
       document.getElementById('sms').href = 'sms:?&body=' + enc;
       document.getElementById('oszt').onclick = function () {
+        naplo('Megosztás');
         if (navigator.share) navigator.share({ text: d.szoveg }).catch(function () {});
         else uz.textContent = 'Ezen az eszközön nincs megosztás menü – használd a lenti gombokat.';
       };
@@ -79,6 +83,7 @@
         uz.textContent = ok ? 'Kimásolva – illeszd be az üzenetbe.' : 'Nem sikerült – jelöld ki a szöveget kézzel.';
       }
       document.getElementById('masol').onclick = function () {
+        naplo('Másolás');
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(d.szoveg).then(function () { uz.textContent = 'Kimásolva – illeszd be az üzenetbe.'; }, regiMasolas);
         } else regiMasolas();

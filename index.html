@@ -50,7 +50,7 @@
   // Salesrep online ajánlat – a Google Apps Script webalkalmazás (Google-sáv nélkül, rövid linkkel).
   var APP = 'https://script.google.com/macros/s/AKfycbxxh_NyBiZ4NemFJVn84S2dcMHJI7Qmnz5inN33eFEfDci-bw43T4Xx8d9-KvO5QFP-/exec';
   var p = new URLSearchParams(location.search);
-  var t = (p.get('t') || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 40);
+  var t = (p.get('t') || location.hash.slice(1) || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 40);   // rövid link: salesrep-hu.github.io/#TOKEN
 
   if (p.get('m') === '1') {
     // Zoli megosztó oldala: az adatokat JSON-ban kéri (?m=j), a gombok itt, a saját oldalon futnak
@@ -91,7 +91,7 @@
     var f = document.createElement('iframe');
     f.title = 'Salesrep – ajánlat';
     f.setAttribute('allow', 'clipboard-write; web-share');
-    f.src = APP + location.search;
+    f.src = APP + '?t=' + encodeURIComponent(t);
     document.body.appendChild(f);
   }
 </script>

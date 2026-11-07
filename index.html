@@ -70,11 +70,18 @@
         if (navigator.share) navigator.share({ text: d.szoveg }).catch(function () {});
         else uz.textContent = 'Ezen az eszközön nincs megosztás menü – használd a lenti gombokat.';
       };
+      function regiMasolas() {   // tartalék: rejtett szövegmező + execCommand('copy')
+        var ta = document.createElement('textarea'); ta.value = d.szoveg; ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed'; ta.style.top = '-1000px'; document.body.appendChild(ta);
+        ta.select(); ta.setSelectionRange(0, ta.value.length);
+        var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+        document.body.removeChild(ta);
+        uz.textContent = ok ? 'Kimásolva – illeszd be az üzenetbe.' : 'Nem sikerült – jelöld ki a szöveget kézzel.';
+      }
       document.getElementById('masol').onclick = function () {
-        try {
-          navigator.clipboard.writeText(d.szoveg).then(function () { uz.textContent = 'Kimásolva – illeszd be az üzenetbe.'; },
-            function () { uz.textContent = 'Nem sikerült – jelöld ki a szöveget kézzel.'; });
-        } catch (e) { uz.textContent = 'Nem sikerült – jelöld ki a szöveget kézzel.'; }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(d.szoveg).then(function () { uz.textContent = 'Kimásolva – illeszd be az üzenetbe.'; }, regiMasolas);
+        } else regiMasolas();
       };
     }).catch(function () {
       document.getElementById('tolt').textContent = 'Nem sikerült betölteni. Próbáld újra pár másodperc múlva.';

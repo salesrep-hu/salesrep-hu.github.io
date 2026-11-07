@@ -13,19 +13,80 @@
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="https://salesrep.hu/wp-content/uploads/2023/09/salesrep-logo-favicon-64x64.webp">
 <style>
-  html, body { margin:0; height:100%; background:#f6f7f7; }
+  html, body { margin:0; height:100%; background:#f6f7f7; color:#1c2b2a; font-family:-apple-system, Segoe UI, Roboto, Arial, sans-serif; }
   iframe { position:fixed; inset:0; width:100%; height:100%; border:0; display:block; }
-  .tolt { font:16px -apple-system, Segoe UI, Roboto, Arial, sans-serif; color:#6b7774; text-align:center; padding-top:40vh; }
+  .tolt { font-size:16px; color:#6b7774; text-align:center; padding-top:40vh; }
+  #m { display:none; max-width:520px; margin:0 auto; padding:16px; }
+  #m img { height:34px; width:auto; display:block; }
+  #m h2 { margin:10px 0 4px; font-size:19px; }
+  .kis { color:#6b7774; font-size:14px; }
+  .szoveg { background:#fff; border:1px solid #e3e6e5; border-radius:12px; padding:12px; margin-top:12px; font-size:14px; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .g { display:block; width:100%; box-sizing:border-box; text-align:center; text-decoration:none; font-size:17px; font-weight:600; padding:14px; border-radius:12px; margin-top:10px; border:0; font-family:inherit; cursor:pointer; }
+  .piros { background:#e8000b; color:#fff; } .viber { background:#7360f2; color:#fff; } .wa { background:#25d366; color:#fff; }
+  .feher { background:#fff; color:#1c2b2a; border:1px solid #e3e6e5; }
+  #uz { text-align:center; color:#1e7b45; font-size:14px; margin-top:10px; min-height:18px; }
+  .hiba { color:#e8000b; }
 </style>
 </head>
 <body>
-<div class="tolt">Az ajánlat betöltése…</div>
-<iframe id="f" title="Salesrep – ajánlat" allow="clipboard-write; web-share"></iframe>
+<div class="tolt" id="tolt">Az ajánlat betöltése…</div>
+
+<!-- Zoli „Link küldése” oldala (?m=1): saját oldal, így a vágólap és a megosztás menü is működik -->
+<div id="m">
+  <img src="https://salesrep.hu/wp-content/uploads/2023/09/cropped-Logo-by-Laci-black.png" alt="Salesrep Kft.">
+  <h2>Ajánlat küldése a partnernek</h2>
+  <div class="kis" id="uzlet"></div>
+  <div class="szoveg" id="szoveg"></div>
+  <button class="g piros" id="oszt">Küldés… (megosztás menü)</button>
+  <a class="g viber" id="viber" href="#">Viber</a>
+  <a class="g wa" id="wa" href="#" target="_blank" rel="noopener">WhatsApp</a>
+  <a class="g feher" id="sms" href="#">SMS</a>
+  <button class="g feher" id="masol">Szöveg másolása</button>
+  <div id="uz"></div>
+  <p class="kis" style="font-size:12px;margin-top:16px">Ez az oldal csak neked szól – a partner a fenti linket kapja. Megnyitása nem számít a partner megnyitásának.</p>
+</div>
+
 <script>
-  // Salesrep online ajánlat – a Google Apps Script webalkalmazás beágyazva (így nincs Google-sáv, és rövid a link).
-  // A ?t=<token> (és a Zolinak szóló &m=1) változatlanul továbbmegy.
+  // Salesrep online ajánlat – a Google Apps Script webalkalmazás (Google-sáv nélkül, rövid linkkel).
   var APP = 'https://script.google.com/macros/s/AKfycbxxh_NyBiZ4NemFJVn84S2dcMHJI7Qmnz5inN33eFEfDci-bw43T4Xx8d9-KvO5QFP-/exec';
-  document.getElementById('f').src = APP + location.search;
+  var p = new URLSearchParams(location.search);
+  var t = (p.get('t') || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 40);
+
+  if (p.get('m') === '1') {
+    // Zoli megosztó oldala: az adatokat JSON-ban kéri (?m=j), a gombok itt, a saját oldalon futnak
+    document.title = 'Ajánlat küldése';
+    var uz = document.getElementById('uz');
+    fetch(APP + '?m=j&t=' + encodeURIComponent(t)).then(function (r) { return r.json(); }).then(function (d) {
+      document.getElementById('tolt').style.display = 'none';
+      document.getElementById('m').style.display = 'block';
+      if (d.hiba) { document.getElementById('szoveg').innerHTML = '<span class="hiba"></span>'; document.querySelector('#szoveg .hiba').textContent = d.hiba; return; }
+      document.getElementById('uzlet').textContent = d.uzlet || '';
+      document.getElementById('szoveg').textContent = d.szoveg;
+      var enc = encodeURIComponent(d.szoveg);
+      document.getElementById('viber').href = 'viber://forward?text=' + encodeURIComponent(d.viber);   // a Viber legfeljebb 200 karaktert ad át
+      document.getElementById('wa').href = 'https://wa.me/?text=' + enc;
+      document.getElementById('sms').href = 'sms:?&body=' + enc;
+      document.getElementById('oszt').onclick = function () {
+        if (navigator.share) navigator.share({ text: d.szoveg }).catch(function () {});
+        else uz.textContent = 'Ezen az eszközön nincs megosztás menü – használd a lenti gombokat.';
+      };
+      document.getElementById('masol').onclick = function () {
+        try {
+          navigator.clipboard.writeText(d.szoveg).then(function () { uz.textContent = 'Kimásolva – illeszd be az üzenetbe.'; },
+            function () { uz.textContent = 'Nem sikerült – jelöld ki a szöveget kézzel.'; });
+        } catch (e) { uz.textContent = 'Nem sikerült – jelöld ki a szöveget kézzel.'; }
+      };
+    }).catch(function () {
+      document.getElementById('tolt').textContent = 'Nem sikerült betölteni. Próbáld újra pár másodperc múlva.';
+    });
+  } else {
+    // A partner ajánlat-oldala: a webalkalmazás beágyazva
+    var f = document.createElement('iframe');
+    f.title = 'Salesrep – ajánlat';
+    f.setAttribute('allow', 'clipboard-write; web-share');
+    f.src = APP + location.search;
+    document.body.appendChild(f);
+  }
 </script>
 </body>
 </html>

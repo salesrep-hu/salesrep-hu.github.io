@@ -62,7 +62,7 @@
       if (d.hiba) { document.getElementById('szoveg').innerHTML = '<span class="hiba"></span>'; document.querySelector('#szoveg .hiba').textContent = d.hiba; return; }
       document.getElementById('uzlet').textContent = d.uzlet || '';
       // v4 (2026-11-07): a küldés gombjai jelzik a kiküldést (az Üzenőfal ebből zárja le a feladatot)
-      function naplo(c) { try { fetch(APP + '?m=k&t=' + encodeURIComponent(t) + '&c=' + encodeURIComponent(c), { mode: 'no-cors', keepalive: true }); } catch (e) {} }
+      function naplo(c) { try { fetch(APP + '?m=k&t=' + encodeURIComponent(t) + '&csat=' + encodeURIComponent(c), { mode: 'no-cors', keepalive: true }); } catch (e) {} }
       ['viber', 'wa', 'sms'].forEach(function (id) { document.getElementById(id).addEventListener('click', function () { naplo(id === 'wa' ? 'WhatsApp' : id === 'sms' ? 'SMS' : 'Viber'); }); });
       document.getElementById('szoveg').textContent = d.szoveg;
       var enc = encodeURIComponent(d.szoveg);

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Salesrep – számla</title>
+<meta name="description" content="A számlád PDF-ben – koppints a megnyitáshoz.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Salesrep Kft.">
+<meta property="og:title" content="Salesrep – számla">
+<meta property="og:description" content="A számlád PDF-ben – koppints a megnyitáshoz.">
+<meta property="og:image" content="https://salesrep.hu/wp-content/uploads/2023/09/cropped-Logo-by-Laci-black.png">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="https://salesrep.hu/wp-content/uploads/2023/09/salesrep-logo-favicon-64x64.webp">
+<style>
+  html, body { margin:0; background:#f6f7f7; color:#1c2b2a; font-family:-apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+  #m { max-width:520px; margin:0 auto; padding:16px; }
+  #m img.logo { height:34px; width:auto; display:block; }
+  h2 { margin:14px 0 4px; font-size:20px; }
+  .kis { color:#6b7774; font-size:14px; }
+  .doboz { background:#fff; border:1px solid #e3e6e5; border-radius:12px; padding:14px; margin-top:14px; font-size:16px; line-height:1.45; }
+  .g { display:none; width:100%; box-sizing:border-box; text-align:center; text-decoration:none; font-size:17px; font-weight:600; padding:14px; border-radius:12px; margin-top:12px; border:0; font-family:inherit; }
+  .piros { background:#e8000b; color:#fff; } .feher { background:#fff; color:#1c2b2a; border:1px solid #e3e6e5; }
+  .hiba { color:#e8000b; }
+</style>
+</head>
+<body>
+<div id="m">
+  <img class="logo" src="https://salesrep.hu/wp-content/uploads/2023/09/cropped-Logo-by-Laci-black.png" alt="Salesrep Kft.">
+  <h2 id="cim">Számla</h2>
+  <div class="doboz" id="all">A számla betöltése…</div>
+  <a class="g piros" id="nyit" href="#" target="_blank" rel="noopener">Számla megnyitása (PDF)</a>
+  <a class="g feher" id="let" href="#">Számla letöltése</a>
+  <p class="kis" style="margin-top:18px">Kérdésed van? Hívd Zolit: <a href="tel:+36206184030">+36 20 618 4030</a></p>
+</div>
+<script>
+  // Salesrep – nyitott számla a partnernek (2026-11-08). A számla NINCS ezen az oldalon:
+  // a webalkalmazás adja ki a Drive-ról, csak érvényes azonosítóra és csak amíg a számla nyitott.
+  var APP = 'https://script.google.com/macros/s/AKfycbxxh_NyBiZ4NemFJVn84S2dcMHJI7Qmnz5inN33eFEfDci-bw43T4Xx8d9-KvO5QFP-/exec';
+  var t = (location.hash || '').replace(/^#/, '').replace(/[^A-Za-z0-9]/g, '').slice(0, 20);
+  var z = /[?&]z=1(&|$)/.test(location.search) ? '&z=1' : '';   // z=1: Zoli nyitja meg az appból (nem számít a partner megnyitásának)
+  var all = document.getElementById('all');
+  function uzen(s, hiba) { all.innerHTML = ''; var e = document.createElement('span'); if (hiba) e.className = 'hiba'; e.textContent = s; all.appendChild(e); }
+  if (!t) {
+    uzen('A link nem teljes. Kérd el újra Zolitól.', true);
+  } else {
+    fetch(APP + '?m=sz&t=' + encodeURIComponent(t) + z).then(function (r) { return r.json(); }).then(function (d) {
+      if (d.allapot === 'nyitott' && d.pdf) {
+        document.getElementById('cim').textContent = 'Számla: ' + d.szam;
+        var bin = atob(d.pdf), n = bin.length, u8 = new Uint8Array(n);
+        for (var i = 0; i < n; i++) u8[i] = bin.charCodeAt(i);
+        var url = URL.createObjectURL(new Blob([u8], { type: 'application/pdf' }));
+        var nyit = document.getElementById('nyit'), le = document.getElementById('let');
+        nyit.href = url; le.href = url; le.setAttribute('download', d.nev || 'szamla.pdf');
+        nyit.style.display = 'block'; le.style.display = 'block';
+        uzen('Itt a ' + d.szam + ' számla. Koppints a gombra a megnyitáshoz. Ha nem nyílik meg, töltsd le.');
+      } else if (d.allapot === 'rendezve') {
+        uzen('Ez a számla már rendezve van. Köszönjük!');
+      } else if (d.allapot === 'nincspdf') {
+        uzen('A ' + (d.szam || '') + ' számla PDF-je most nem érhető el. Kérd el Zolitól.', true);
+      } else if (d.allapot === 'ervenytelen') {
+        uzen('Ez a link nem érvényes. Kérd el újra Zolitól.', true);
+      } else {
+        uzen('Most nem sikerült betölteni. Próbáld újra pár perc múlva.', true);
+      }
+    }).catch(function () {
+      uzen('Most nem sikerült betölteni. Próbáld újra pár perc múlva.', true);
+    });
+  }
+</script>
+</body>
+</html>

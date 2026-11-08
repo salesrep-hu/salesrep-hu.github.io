@@ -23,6 +23,14 @@
   .g { display:none; width:100%; box-sizing:border-box; text-align:center; text-decoration:none; font-size:17px; font-weight:600; padding:14px; border-radius:12px; margin-top:12px; border:0; font-family:inherit; }
   .piros { background:#e8000b; color:#fff; } .feher { background:#fff; color:#1c2b2a; border:1px solid #e3e6e5; }
   .hiba { color:#e8000b; }
+  .biz { background:#fff; border:1px solid #e3e6e5; border-radius:12px; padding:14px; margin-top:12px; }
+  .biz .nev { font-size:15px; color:#6b7774; }
+  .biz .sor { display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin-top:2px; }
+  .biz .szam { font-size:17px; font-weight:600; }
+  .biz .osszeg { font-size:17px; font-weight:600; white-space:nowrap; }
+  .biz .gombok { display:flex; gap:8px; margin-top:10px; }
+  .biz .gombok a { flex:1; display:block; text-align:center; text-decoration:none; font-size:16px; font-weight:600; padding:12px; border-radius:10px; }
+  .fiz { display:none; justify-content:space-between; align-items:baseline; background:#1c2b2a; color:#fff; border-radius:12px; padding:14px; margin-top:12px; font-size:18px; font-weight:700; }
 </style>
 </head>
 <body>
@@ -30,6 +38,8 @@
   <img class="logo" src="https://salesrep.hu/wp-content/uploads/2023/09/cropped-Logo-by-Laci-black.png" alt="Salesrep Kft.">
   <h2 id="cim">Számla</h2>
   <div class="doboz" id="all">A számla betöltése…</div>
+  <div id="lista"></div>
+  <div class="fiz" id="fiz"><span>Fizetendő:</span><span id="fizossz"></span></div>
   <a class="g piros" id="nyit" href="#" target="_blank" rel="noopener">Számla megnyitása (PDF)</a>
   <a class="g feher" id="let" href="#">Számla letöltése</a>
   <p class="kis" style="margin-top:18px">Kérdésed van? Hívd Zolit: <a href="tel:+36206184030">+36 20 618 4030</a></p>
@@ -37,20 +47,52 @@
 <script>
   // Salesrep – nyitott számla a partnernek (2026-11-08). A számla NINCS ezen az oldalon:
   // a webalkalmazás adja ki a Drive-ról, csak érvényes azonosítóra és csak amíg a számla nyitott.
+  // v2 (2026-11-08, Andras): ha a számlához módosító / jóváíró bizonylat tartozik, mindegyik külön sorban, saját gombbal,
+  // alattuk a fizetendő összeg (a webalkalmazás „bizonylatok” és „fizetendo” mezője). Egy számlánál minden a régi.
   var APP = 'https://script.google.com/macros/s/AKfycbxxh_NyBiZ4NemFJVn84S2dcMHJI7Qmnz5inN33eFEfDci-bw43T4Xx8d9-KvO5QFP-/exec';
   var t = (location.hash || '').replace(/^#/, '').replace(/[^A-Za-z0-9]/g, '').slice(0, 20);
   var z = /[?&]z=1(&|$)/.test(location.search) ? '&z=1' : '';   // z=1: Zoli nyitja meg az appból (nem számít a partner megnyitásának)
   var all = document.getElementById('all');
   function uzen(s, hiba) { all.innerHTML = ''; var e = document.createElement('span'); if (hiba) e.className = 'hiba'; e.textContent = s; all.appendChild(e); }
+  function pdfUrl(b64) {
+    var bin = atob(b64), n = bin.length, u8 = new Uint8Array(n);
+    for (var i = 0; i < n; i++) u8[i] = bin.charCodeAt(i);
+    return URL.createObjectURL(new Blob([u8], { type: 'application/pdf' }));
+  }
+  function ft(x) { var n = Math.round(Number(x) || 0); return (n < 0 ? '−' : '') + String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' Ft'; }
+  function el(tag, cls, szoveg) { var e = document.createElement(tag); if (cls) e.className = cls; if (szoveg != null) e.textContent = szoveg; return e; }
+  function tobb(d) {
+    document.getElementById('cim').textContent = 'Számla: ' + d.szam;
+    var db = d.bizonylatok.length;
+    uzen('Ehhez a számlához ' + (db === 2 ? 'még egy bizonylat tartozik' : 'még ' + (db - 1) + ' bizonylat tartozik') + '. Mindegyiket itt megnyithatod. Ha nem nyílik meg, töltsd le.');
+    var lista = document.getElementById('lista');
+    d.bizonylatok.forEach(function (b) {
+      var b64 = b.fo ? d.pdf : b.pdf;
+      var doboz = el('div', 'biz');
+      doboz.appendChild(el('div', 'nev', b.cimke || 'Bizonylat'));
+      var sor = el('div', 'sor'); sor.appendChild(el('span', 'szam', b.szam)); sor.appendChild(el('span', 'osszeg', ft(b.osszeg))); doboz.appendChild(sor);
+      if (b64) {
+        var url = pdfUrl(b64), gombok = el('div', 'gombok');
+        var a1 = el('a', 'piros', 'Megnyitom'); a1.href = url; a1.target = '_blank'; a1.rel = 'noopener';
+        var a2 = el('a', 'feher', 'Letöltöm'); a2.href = url; a2.setAttribute('download', b.nev || 'szamla.pdf');
+        gombok.appendChild(a1); gombok.appendChild(a2); doboz.appendChild(gombok);
+      } else {
+        doboz.appendChild(el('div', 'kis', 'A PDF most nem érhető el. Kérd el Zolitól.'));
+      }
+      lista.appendChild(doboz);
+    });
+    document.getElementById('fizossz').textContent = ft(d.fizetendo);
+    document.getElementById('fiz').style.display = 'flex';
+  }
   if (!t) {
     uzen('A link nem teljes. Kérd el újra Zolitól.', true);
   } else {
     fetch(APP + '?m=sz&t=' + encodeURIComponent(t) + z).then(function (r) { return r.json(); }).then(function (d) {
-      if (d.allapot === 'nyitott' && d.pdf) {
+      if (d.allapot === 'nyitott' && d.pdf && d.bizonylatok && d.bizonylatok.length > 1) {
+        tobb(d);
+      } else if (d.allapot === 'nyitott' && d.pdf) {
         document.getElementById('cim').textContent = 'Számla: ' + d.szam;
-        var bin = atob(d.pdf), n = bin.length, u8 = new Uint8Array(n);
-        for (var i = 0; i < n; i++) u8[i] = bin.charCodeAt(i);
-        var url = URL.createObjectURL(new Blob([u8], { type: 'application/pdf' }));
+        var url = pdfUrl(d.pdf);
         var nyit = document.getElementById('nyit'), le = document.getElementById('let');
         nyit.href = url; le.href = url; le.setAttribute('download', d.nev || 'szamla.pdf');
         nyit.style.display = 'block'; le.style.display = 'block';
